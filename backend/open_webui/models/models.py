@@ -387,7 +387,12 @@ class ModelsTable:
                 if tag:
                     bind = await db.connection()
                     dialect_name = bind.dialect.name
-                    tag_val = unicode_caseless(tag)
+                    # Fold the param with the same rule as the column side of
+                    # each dialect (see Prompts.search_prompts): unilower() on
+                    # SQLite, str.lower() paired with native LOWER() on
+                    # PostgreSQL — casefold() diverges from LOWER() on
+                    # 'ς'/'ß'.
+                    tag_val = unicode_caseless(tag) if dialect_name == 'sqlite' else tag.lower()
 
                     if dialect_name == 'sqlite':
                         tag_clause = text(

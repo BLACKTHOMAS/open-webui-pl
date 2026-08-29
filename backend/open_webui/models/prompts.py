@@ -331,11 +331,14 @@ class PromptsTable:
                 if tag:
                     bind = await session.connection()
                     dialect_name = bind.dialect.name
-                    # NFKC-casefold the parameter: PG's LOWER() has no Greek
-                    # final-sigma rule (lower('ΣΑΣ') = 'σασ'), which str.lower()
-                    # would disagree with ('σας') — casefold matches PG exactly
-                    # and is re-folded (idempotently) by unilower() on SQLite.
-                    tag_val = unicode_caseless(tag)
+                    # Pair the parameter fold with each dialect's column-side
+                    # fold: SQLite folds both sides via unilower() (Unicode
+                    # NFKC-caseless; the param is re-folded idempotently in
+                    # SQL), PostgreSQL keeps native LOWER() on the column and
+                    # pairs with str.lower() exactly like upstream — casefold()
+                    # would diverge from LOWER() (it maps Greek final sigma
+                    # 'ς'->'σ' and 'ß'->'ss', which LOWER() leaves unchanged).
+                    tag_val = unicode_caseless(tag) if dialect_name == 'sqlite' else tag.lower()
 
                     if dialect_name == 'sqlite':
                         tag_clause = text(
