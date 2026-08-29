@@ -94,8 +94,14 @@ def _unicode_lower(value):
     return normalize('NFKC', str(value).casefold())
 
 
-def _register_sqlite_search_functions(dbapi_connection):
-    """Register ``unilower()`` on a raw SQLite/SQLCipher DBAPI connection."""
+def _register_sqlite_search_functions(dbapi_connection, connection_record=None):
+    """Register ``unilower()`` on a raw SQLite/SQLCipher DBAPI connection.
+
+    The optional ``connection_record`` parameter makes this callable usable
+    directly as a SQLAlchemy ``connect`` event listener, which invokes
+    listeners with ``(dbapi_connection, connection_record)`` (migrations
+    env.py does exactly that); direct call sites pass only the connection.
+    """
     try:
         dbapi_connection.create_function('unilower', 1, _unicode_lower, deterministic=True)
     except TypeError:
